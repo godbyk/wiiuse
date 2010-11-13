@@ -24,18 +24,21 @@ set(API
 	
 if(WIN32)
 	list(APPEND SOURCES io_win.c)
-	list(APPEND API ../msvc-stdint/stdint.h)
+	set(CMAKE_DEBUG_POSTFIX _debug)
 else()
 	list(APPEND SOURCES io_nix.c)
 endif()
 
-
+if(MSVC)
+	list(APPEND API ../msvc-stdint/stdint.h)
+endif()
 
 add_library(wiiuse SHARED ${SOURCES} ${API})
+
 if(WIN32)
-	target_link_libraries(wiiuse Ws2_32.lib hid.lib setupapi.lib)
-else()
-	target_link_libraries(wiiuse m bluetooth)
+	target_link_libraries(wiiuse Ws2_32.lib ${WINHID_LIBRARIES} setupapi.lib)
+elseif(LINUX)
+	target_link_libraries(wiiuse m ${BLUEZ_LIBRARIES})
 endif()
 
 set_property(TARGET
@@ -44,14 +47,31 @@ set_property(TARGET
 	PUBLIC_HEADER
 	${API})
 
+set_property(TARGET
+	wiiuse
+	PROPERTY
+	COMPILE_DEFINITIONS_DEBUG
+	WITH_WIIUSE_DEBUG)
+
 install(TARGETS
 	wiiuse
 	RUNTIME
 	DESTINATION
 	bin
+	COMPONENT
+	runtime
+	ARCHIVE
+	DESTINATION
+	lib
+	COMPONENT
+	development
 	LIBRARY
 	DESTINATION
 	lib
+	COMPONENT
+	runtime
 	PUBLIC_HEADER
 	DESTINATION
-	include)
+	include
+	COMPONENT
+	development)
