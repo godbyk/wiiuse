@@ -34,7 +34,7 @@
 #ifndef CONNECT_H_INCLUDED
 #define CONNECT_H_INCLUDED
 
-#ifndef WIN32
+#ifdef WIIUSE_BLUEZ
 	#include <bluetooth/bluetooth.h>
 #endif
 
@@ -44,10 +44,14 @@
 extern "C" {
 #endif
 
+
+/** @defgroup internal_io Internal: Device IO */
+/** @{ */
 void wiiuse_handshake(struct wiimote_t* wm, byte* data, uint16_t len);
 
 int wiiuse_io_read(struct wiimote_t* wm);
 int wiiuse_io_write(struct wiimote_t* wm, byte* buf, int len);
+/** @} */
 
 #ifdef __cplusplus
 }

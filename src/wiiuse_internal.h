@@ -44,14 +44,37 @@
 #ifndef WIIUSE_INTERNAL_H_INCLUDED
 #define WIIUSE_INTERNAL_H_INCLUDED
 
-#ifndef WIN32
+#ifndef WIIUSE_PLATFORM
+	#if defined(_WIN32)
+		#define WIIUSE_PLATFORM
+		#define WIIUSE_WIN32
+	#elif defined(__linux)
+		#define WIIUSE_PLATFORM
+		#define WIIUSE_BLUEZ
+	#else
+		#error "Platform not yet supported!"
+	#endif
+#endif
+
+#ifdef WIIUSE_WIN32
+	#include <Winsock2.h>
+#endif
+#ifdef WIIUSE_BLUEZ
 	#include <arpa/inet.h>				/* htons() */
 	#include <bluetooth/bluetooth.h>
 #endif
 
 #include "definitions.h"
 
-#include <stdint.h>
+#if defined(_MSC_VER)
+/* MS compilers of pre-VC2010 versions don't have stdint.h
+ * and I can't get VC2010's stdint.h to compile nicely in
+ * WiiUse
+ */
+	#include "wiiuse_msvcstdint.h"
+#else
+	#include <stdint.h>
+#endif
 
 /********************
  *
@@ -59,6 +82,9 @@
  *
  ********************/
 
+
+/** @addtogroup internal_general Internal: API for General Internal Use */
+/** @{ */
 /* Communication channels */
 #define WM_OUTPUT_CHANNEL			0x11
 #define WM_INPUT_CHANNEL			0x13
@@ -207,8 +233,10 @@
 #define SMOOTH_ROLL						0x01
 #define SMOOTH_PITCH					0x02
 
+/** @} */
 #include "wiiuse.h"
-
+/** @addtogroup internal_general */
+/** @{ */
 #define _STRINGIFY(s) _STRINGIFY_IMPL(s)
 #define _STRINGIFY_IMPL(s) #s
 
@@ -228,5 +256,6 @@ int wiiuse_read_data_cb(struct wiimote_t* wm, wiiuse_read_cb read_cb, byte* buff
 #ifdef __cplusplus
 }
 #endif
+/** @} */
 
 #endif /* WIIUSE_INTERNAL_H_INCLUDED */

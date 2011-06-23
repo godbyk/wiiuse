@@ -181,6 +181,15 @@ void handle_event(struct wiimote_t* wm) {
 		printf("Guitar whammy bar:          %f\n", gh3->whammy_bar);
 		printf("Guitar joystick angle:      %f\n", gh3->js.ang);
 		printf("Guitar joystick magnitude:  %f\n", gh3->js.mag);
+	} else if (wm->exp.type == EXP_WII_BOARD) {
+		/* wii balance board */
+		struct wii_board_t* wb = (wii_board_t*)&wm->exp.wb;
+		float total = wb->tl + wb->tr + wb->bl + wb->br;
+		float x = ((wb->tr + wb->br) / total) * 2 - 1;
+		float y = ((wb->tl + wb->tr) / total) * 2 - 1;
+		printf("Weight: %f kg @ (%f, %f)\n", total, x, y);
+		//printf("Interpolated weight: TL:%f  TR:%f  BL:%f  BR:%f\n", wb->tl, wb->tr, wb->bl, wb->br);
+		//printf("Raw: TL:%d  TR:%d  BL:%d  BR:%d\n", wb->rtl, wb->rtr, wb->rbl, wb->rbr);
 	}
 }
 
@@ -407,6 +416,10 @@ int main(int argc, char** argv) {
 						printf("Classic controller inserted.\n");
 						break;
 
+					case WIIUSE_WII_BOARD_CTRL_INSERTED:
+						printf("Balance board controller inserted.\n");
+						break;
+
 					case WIIUSE_GUITAR_HERO_3_CTRL_INSERTED:
 						/* some expansion was inserted */
 						handle_ctrl_status(wiimotes[i]);
@@ -416,6 +429,7 @@ int main(int argc, char** argv) {
 					case WIIUSE_NUNCHUK_REMOVED:
 					case WIIUSE_CLASSIC_CTRL_REMOVED:
 					case WIIUSE_GUITAR_HERO_3_CTRL_REMOVED:
+					case WIIUSE_WII_BOARD_CTRL_REMOVED:
 						/* some expansion was removed */
 						handle_ctrl_status(wiimotes[i]);
 						printf("An expansion was removed.\n");

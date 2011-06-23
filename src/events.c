@@ -34,30 +34,25 @@
  *	that are sent from the wiimote to us.
  */
 
-#include <stdio.h>
-
-#ifndef WIN32
-	#include <sys/time.h>
-	#include <unistd.h>
-	#include <errno.h>
-#else
-	#include <winsock2.h>
-#endif
-
-#include <sys/types.h>
-#include <stdlib.h>
-#include <math.h>
-
-#include "definitions.h"
-#include "io.h"
 #include "wiiuse_internal.h"
+#include "events.h"
+#include "io.h"
 #include "dynamics.h"
 #include "ir.h"
 #include "nunchuk.h"
 #include "classic.h"
 #include "guitar_hero_3.h"
 #include "wiiboard.h"
-#include "events.h"
+
+#ifndef WIIUSE_WIN32
+	#include <sys/time.h>
+	#include <unistd.h>
+	#include <errno.h>
+#endif
+
+#include <sys/types.h>
+#include <stdlib.h>
+#include <math.h>
 
 static void idle_cycle(struct wiimote_t* wm);
 static void clear_dirty_reads(struct wiimote_t* wm);
@@ -84,7 +79,7 @@ static int state_changed(struct wiimote_t* wm);
 int wiiuse_poll(struct wiimote_t** wm, int wiimotes) {
 	int evnt = 0;
 
-	#ifndef WIN32
+	#ifdef WIIUSE_BLUEZ
 		/*
 		 *	*nix
 		 */
@@ -149,6 +144,7 @@ int wiiuse_poll(struct wiimote_t** wm, int wiimotes) {
 						/* this can happen if the bluetooth dongle is disconnected */
 						WIIUSE_ERROR("Bluetooth appears to be disconnected.  Wiimote unid %i will be disconnected.", wm[i]->unid);
 						wiiuse_disconnect(wm[i]);
+						wiiuse_disconnected(wm[i]);
 						wm[i]->event = WIIUSE_UNEXPECTED_DISCONNECT;
 					}
 
@@ -195,6 +191,38 @@ int wiiuse_poll(struct wiimote_t** wm, int wiimotes) {
 	return evnt;
 }
 
+int wiiuse_update(struct wiimote_t** wiimotes, int nwiimotes, wiiuse_update_cb callback) {
+	int evnt = 0;
+	if (wiiuse_poll(wiimotes, nwiimotes)) {
+		static struct wiimote_callback_data_t s;
+		int i = 0;
+		for (; i < nwiimotes; ++i) {
+			switch (wiimotes[i]->event) {
+				case WIIUSE_NONE:
+					break;
+				default:
+					/* this could be:  WIIUSE_EVENT, WIIUSE_STATUS, WIIUSE_CONNECT, etc.. */
+					s.uid = wiimotes[i]->unid;
+					s.leds = wiimotes[i]->leds;
+					s.battery_level = wiimotes[i]->battery_level;
+					s.accel = wiimotes[i]->accel;
+					s.orient = wiimotes[i]->orient;
+					s.gforce = wiimotes[i]->gforce;
+					s.ir = wiimotes[i]->ir;
+					s.buttons = wiimotes[i]->btns;
+					s.buttons_held = wiimotes[i]->btns_held;
+					s.buttons_released = wiimotes[i]->btns_released;
+					s.event = wiimotes[i]->event;
+					s.state = wiimotes[i]->state;
+					s.expansion = wiimotes[i]->exp;
+					callback( &s );
+					evnt++;
+					break;
+			}
+		}
+	}
+	return evnt;
+}
 
 /**
  *	@brief Called on a cycle where no significant change occurs.
@@ -525,7 +553,7 @@ static void event_data_read(struct wiimote_t* wm, byte* msg) {
  *	Read the controller status and execute the registered status callback.
  */
 static void event_status(struct wiimote_t* wm, byte* msg) {
-	int led[4] = {0};
+	int led[4] = {0, 0, 0, 0};
 	int attachment = 0;
 	int ir = 0;
 	int exp_changed = 0;
@@ -571,7 +599,7 @@ static void event_status(struct wiimote_t* wm, byte* msg) {
 		exp_changed = 1;
 	}
 
-	#ifdef WIN32
+	#ifdef WIIUSE_WIN32
 	if (!attachment) {
 		WIIUSE_DEBUG("Setting timeout to normal %i ms.", wm->normal_timeout);
 		wm->timeout = wm->normal_timeout;
@@ -645,7 +673,7 @@ void handshake_expansion(struct wiimote_t* wm, byte* data, uint16_t len) {
 			disable_expansion(wm);
 
 		/* increase the timeout until the handshake completes */
-		#ifdef WIN32
+		#ifdef WIIUSE_WIN32
 		WIIUSE_DEBUG("Setting timeout to expansion %i ms.", wm->exp_timeout);
 		wm->timeout = wm->exp_timeout;
 		#endif

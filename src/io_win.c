@@ -31,19 +31,14 @@
  *	@brief Handles device I/O for Windows.
  */
 
-#ifdef WIN32
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <windows.h>
-#include <hidsdi.h>
-#include <setupapi.h>
-
-#include "definitions.h"
-#include "wiiuse_internal.h"
 #include "io.h"
 
+#ifdef WIIUSE_WIN32
+#include <stdlib.h>
+
+#include <hidsdi.h>
+#include <setupapi.h>
 
 int wiiuse_find(struct wiimote_t** wm, int max_wiimotes, int timeout) {
 	GUID device_id;
@@ -246,4 +241,4 @@ int wiiuse_io_write(struct wiimote_t* wm, byte* buf, int len) {
 	return 0;
 }
 
-#endif /* ifdef WIN32 */
+#endif /* ifdef WIIUSE_WIN32 */

@@ -31,30 +31,13 @@
  *	@brief Wii Fit Balance Board device.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <math.h>
 
-#ifdef WIN32
-	#include <Winsock2.h>
-#endif
-
-#include "definitions.h"
-#include "wiiuse_internal.h"
+#include "wiiboard.h"
 #include "dynamics.h"
 #include "events.h"
-#include "wiiboard.h"
 
-static uint16_t big_to_lil(uint16_t num)
-{
-	uint16_t ret = num;
-	uint8_t *bret = (uint8_t*)&ret;
-	uint8_t tmp = bret[1];
-	bret[1] = bret[0];
-	bret[0] = tmp;
-	return ret;
-}
+#include <stdlib.h>
+#include <math.h>
 
 /**
  *	@brief Handle the handshake data from the wiiboard.
@@ -67,11 +50,11 @@ static uint16_t big_to_lil(uint16_t num)
  */
 
 int wii_board_handshake(struct wiimote_t* wm, struct wii_board_t* wb, byte* data, uint16_t len) {
-	int i;
 	uint16_t *handshake_short;
 
 	/* decrypt data */
 #ifdef WITH_WIIUSE_DEBUG
+	int i;
 	printf("DECRYPTED DATA WIIBOARD\n");
 	for (i = 0; i < len; ++i)
 	{
@@ -89,26 +72,26 @@ int wii_board_handshake(struct wiimote_t* wm, struct wii_board_t* wb, byte* data
 
 	handshake_short = (uint16_t*)data;
 
-	wb->ctr[0] = big_to_lil(handshake_short[2]);
-	wb->cbr[0] = big_to_lil(handshake_short[3]);
-	wb->ctl[0] = big_to_lil(handshake_short[4]);
-	wb->cbl[0] = big_to_lil(handshake_short[5]);
+	wb->ctr[0] = FROM_BIG_ENDIAN_SHORT(handshake_short[2]);
+	wb->cbr[0] = FROM_BIG_ENDIAN_SHORT(handshake_short[3]);
+	wb->ctl[0] = FROM_BIG_ENDIAN_SHORT(handshake_short[4]);
+	wb->cbl[0] = FROM_BIG_ENDIAN_SHORT(handshake_short[5]);
 
-	wb->ctr[1] = big_to_lil(handshake_short[6]);
-	wb->cbr[1] = big_to_lil(handshake_short[7]);
-	wb->ctl[1] = big_to_lil(handshake_short[8]);
-	wb->cbl[1] = big_to_lil(handshake_short[9]);
+	wb->ctr[1] = FROM_BIG_ENDIAN_SHORT(handshake_short[6]);
+	wb->cbr[1] = FROM_BIG_ENDIAN_SHORT(handshake_short[7]);
+	wb->ctl[1] = FROM_BIG_ENDIAN_SHORT(handshake_short[8]);
+	wb->cbl[1] = FROM_BIG_ENDIAN_SHORT(handshake_short[9]);
 
-	wb->ctr[2] = big_to_lil(handshake_short[10]);
-	wb->cbr[2] = big_to_lil(handshake_short[11]);
-	wb->ctl[2] = big_to_lil(handshake_short[12]);
-	wb->cbl[2] = big_to_lil(handshake_short[13]);
+	wb->ctr[2] = FROM_BIG_ENDIAN_SHORT(handshake_short[10]);
+	wb->cbr[2] = FROM_BIG_ENDIAN_SHORT(handshake_short[11]);
+	wb->ctl[2] = FROM_BIG_ENDIAN_SHORT(handshake_short[12]);
+	wb->cbl[2] = FROM_BIG_ENDIAN_SHORT(handshake_short[13]);
 
 	/* handshake done */
 	wm->event = WIIUSE_WII_BOARD_CTRL_INSERTED;
 	wm->exp.type = EXP_WII_BOARD;
 
-	#ifdef WIN32
+	#ifdef WIIUSE_WIN32
 	wm->timeout = WIIMOTE_DEFAULT_TIMEOUT;
 	#endif
 
@@ -127,12 +110,14 @@ void wii_board_disconnected(struct wii_board_t* wb) {
 
 static float do_interpolate(uint16_t raw, uint16_t cal[3]) {
 #define WIIBOARD_MIDDLE_CALIB 17.0f
-	if (raw < cal[1]) {
+	if (raw < cal[0]) {
+		return 0.0f;
+	} else if (raw < cal[1]) {
 		return ((raw-cal[0]) * WIIBOARD_MIDDLE_CALIB)/(float)(cal[1] - cal[0]);
-	} else if (raw > cal[1]) {
+	} else if (raw < cal[2]) {
 		return ((raw-cal[1]) * WIIBOARD_MIDDLE_CALIB)/(float)(cal[2] - cal[1]) + WIIBOARD_MIDDLE_CALIB;
 	} else {
-		return WIIBOARD_MIDDLE_CALIB;
+		return WIIBOARD_MIDDLE_CALIB * 2.0f;
 	}
 }
 
@@ -144,10 +129,10 @@ static float do_interpolate(uint16_t raw, uint16_t cal[3]) {
  */
 void wii_board_event(struct wii_board_t* wb, byte* msg) {
 	uint16_t *shmsg = (uint16_t*)(msg);
-	wb->rtr = (msg[0] << 8) + msg[1];// big_to_lil(shmsg[0]);
-	wb->rbr = (msg[2] << 8) + msg[3];// big_to_lil(shmsg[1]);
-	wb->rtl = (msg[4] << 8) + msg[5];// big_to_lil(shmsg[2]);
-	wb->rbl = (msg[6] << 8) + msg[7];// big_to_lil(shmsg[3]);
+	wb->rtr = FROM_BIG_ENDIAN_SHORT(shmsg[0]);
+	wb->rbr = FROM_BIG_ENDIAN_SHORT(shmsg[1]);
+	wb->rtl = FROM_BIG_ENDIAN_SHORT(shmsg[2]);
+	wb->rbl = FROM_BIG_ENDIAN_SHORT(shmsg[3]);
 
 	/*
 		Interpolate values
@@ -159,6 +144,9 @@ void wii_board_event(struct wii_board_t* wb, byte* msg) {
 	wb->bl = do_interpolate(wb->rbl, wb->cbl);
 }
 
+/**
+	@todo not implemented!
+*/
 void wiiuse_set_wii_board_calib(struct wiimote_t *wm)
 {
 }

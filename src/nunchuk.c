@@ -31,15 +31,14 @@
  *	@brief Nunchuk expansion device.
  */
 
-#include <stdio.h>
+
+#include "nunchuk.h"
+#include "dynamics.h"
+#include "events.h"
+
 #include <stdlib.h>
 #include <math.h>
 
-#include "definitions.h"
-#include "wiiuse_internal.h"
-#include "dynamics.h"
-#include "events.h"
-#include "nunchuk.h"
 
 static void nunchuk_pressed_buttons(struct nunchuk_t* nc, byte now);
 
@@ -111,7 +110,7 @@ int nunchuk_handshake(struct wiimote_t* wm, struct nunchuk_t* nc, byte* data, un
 	/* handshake done */
 	wm->exp.type = EXP_NUNCHUK;
 
-	#ifdef WIN32
+	#ifdef WIIUSE_WIN32
 	wm->timeout = WIIMOTE_DEFAULT_TIMEOUT;
 	#endif
 

@@ -1,4 +1,4 @@
-# 2009-2010 Ryan Pavlik <rpavlik@iastate.edu>
+# 2009-2011 Ryan Pavlik <rpavlik@iastate.edu>
 # http://academic.cleardefinition.com/
 # Iowa State University HCI Graduate Program/VRAC
 
@@ -27,6 +27,7 @@ option(CPACK_MONOLITHIC_INSTALL "Only produce a single component installer, rath
 # Locally-developed modules dist'ed with this app - always have this first.
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(UseBackportedModules)
+include(DoxygenTargets)
 
 add_definitions(-DWIIUSE_COMPILE_LIB)
 
@@ -47,10 +48,6 @@ endif()
 # Build the project
 ###
 
-if(MSVC)
-	include_directories("${CMAKE_CURRENT_SOURCE_DIR}/msvc-stdint")
-endif()
-
 # The lib is in the "src" subdirectory
 add_subdirectory(src)
 
@@ -63,6 +60,7 @@ if(BUILD_EXAMPLE_SDL)
     add_subdirectory(example-sdl)
 endif()
 
+
 ###
 # Set packaging options (for CPack)
 ###
@@ -73,11 +71,16 @@ else()
 	set(DOC_DIR share/doc/wiiuse)
 endif()
 
+# Documentation
+add_doxygen(Doxyfile
+	INSTALL_DESTINATION ${DOC_DIR}
+	INSTALL_COMPONENT docs
+	NO_PDF)
+
 install(FILES
-	CHANGELOG
+	CHANGELOG.mkd
 	LICENSE
-	LICENSE_noncommercial
-	README
+	README.mkd
 	DESTINATION ${DOC_DIR} COMPONENT docs)
 
 if(INSTALL_EXAMPLES)
@@ -88,7 +91,7 @@ if(INSTALL_EXAMPLES)
 endif()
 
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.mkd")
 
 include(GetCompilerInfoString)
 get_compiler_info_string(_compiler)
