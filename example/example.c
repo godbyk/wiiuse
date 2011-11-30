@@ -34,14 +34,13 @@
  *	This file is an example of how to use the wiiuse library.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdio.h>                      /* for printf */
 
 #ifndef WIN32
-	#include <unistd.h>
+	#include <unistd.h>                     /* for usleep */
 #endif
 
-#include "wiiuse.h"
+#include "wiiuse.h"                     /* for wiimote_t, classic_ctrl_t, etc */
 
 
 #define MAX_WIIMOTES				4
@@ -97,6 +96,22 @@ void handle_event(struct wiimote_t* wm) {
 	if (IS_JUST_PRESSED(wm, WIIMOTE_BUTTON_DOWN))
 		wiiuse_set_ir(wm, 0);
 
+    /*
+     * Motion+ support
+     */
+    if (IS_JUST_PRESSED(wm, WIIMOTE_BUTTON_ONE))
+    {
+        if(WIIUSE_USING_EXP(wm))
+            wiiuse_set_motion_plus(wm, 2); // nunchuck pass-through
+        else
+            wiiuse_set_motion_plus(wm, 1); // standalone
+    }
+
+    if (IS_JUST_PRESSED(wm, WIIMOTE_BUTTON_TWO))
+    {
+        wiiuse_set_motion_plus(wm, 0); // off
+    }
+
 	/* if the accelerometer is turned on then print angles */
 	if (WIIUSE_USING_ACC(wm)) {
 		printf("wiimote roll  = %f [%f]\n", wm->orient.roll, wm->orient.a_roll);
@@ -125,7 +140,7 @@ void handle_event(struct wiimote_t* wm) {
 	}
 
 	/* show events specific to supported expansions */
-	if (wm->exp.type == EXP_NUNCHUK) {
+	if (wm->exp.type == EXP_NUNCHUK || wm->exp.type == EXP_MOTION_PLUS_NUNCHUK) {
 		/* nunchuk */
 		struct nunchuk_t* nc = (nunchuk_t*)&wm->exp.nunchuk;
 
@@ -188,11 +203,19 @@ void handle_event(struct wiimote_t* wm) {
 		float x = ((wb->tr + wb->br) / total) * 2 - 1;
 		float y = ((wb->tl + wb->tr) / total) * 2 - 1;
 		printf("Weight: %f kg @ (%f, %f)\n", total, x, y);
-		//printf("Interpolated weight: TL:%f  TR:%f  BL:%f  BR:%f\n", wb->tl, wb->tr, wb->bl, wb->br);
-		//printf("Raw: TL:%d  TR:%d  BL:%d  BR:%d\n", wb->rtl, wb->rtr, wb->rbl, wb->rbr);
+		/* printf("Interpolated weight: TL:%f  TR:%f  BL:%f  BR:%f\n", wb->tl, wb->tr, wb->bl, wb->br); */
+		/* printf("Raw: TL:%d  TR:%d  BL:%d  BR:%d\n", wb->rtl, wb->rtr, wb->rbl, wb->rbr); */
 	}
-}
 
+    if(wm->exp.type == EXP_MOTION_PLUS ||
+                wm->exp.type == EXP_MOTION_PLUS_NUNCHUK)
+        {
+            printf("Motion+ angular rates (deg/sec): pitch:%03.2f roll:%03.2f yaw:%03.2f\n",
+                   wm->exp.mp.angle_rate_gyro.pitch,
+                   wm->exp.mp.angle_rate_gyro.roll,
+                   wm->exp.mp.angle_rate_gyro.yaw);
+        }
+    }
 
 /**
  *	@brief Callback that handles a read event.
@@ -354,7 +377,7 @@ int main(int argc, char** argv) {
 	 *	if any expansions are plugged into the wiimote or
 	 *	what LEDs are lit.
 	 */
-	//wiiuse_status(wiimotes[0]);
+	/* wiiuse_status(wiimotes[0]); */
 
 	/*
 	 *	This is the main loop
@@ -407,8 +430,8 @@ int main(int argc, char** argv) {
 						 *	threshold values.  By default they are the same
 						 *	as the wiimote.
 						 */
-						 //wiiuse_set_nunchuk_orient_threshold((struct nunchuk_t*)&wiimotes[i]->exp.nunchuk, 90.0f);
-						 //wiiuse_set_nunchuk_accel_threshold((struct nunchuk_t*)&wiimotes[i]->exp.nunchuk, 100);
+						 /* wiiuse_set_nunchuk_orient_threshold((struct nunchuk_t*)&wiimotes[i]->exp.nunchuk, 90.0f); */
+						 /* wiiuse_set_nunchuk_accel_threshold((struct nunchuk_t*)&wiimotes[i]->exp.nunchuk, 100); */
 						printf("Nunchuk inserted.\n");
 						break;
 
@@ -426,10 +449,15 @@ int main(int argc, char** argv) {
 						printf("Guitar Hero 3 controller inserted.\n");
 						break;
 
+        		    case WIIUSE_MOTION_PLUS_ACTIVATED:
+		            	printf("Motion+ was activated\n");
+            			break;
+
 					case WIIUSE_NUNCHUK_REMOVED:
 					case WIIUSE_CLASSIC_CTRL_REMOVED:
 					case WIIUSE_GUITAR_HERO_3_CTRL_REMOVED:
 					case WIIUSE_WII_BOARD_CTRL_REMOVED:
+                    case WIIUSE_MOTION_PLUS_REMOVED:
 						/* some expansion was removed */
 						handle_ctrl_status(wiimotes[i]);
 						printf("An expansion was removed.\n");

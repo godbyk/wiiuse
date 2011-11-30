@@ -19,9 +19,38 @@ Added:
 	by and included with RPythonic http://code.google.com/p/rpythonic/
 	Thanks to hartsantler for this feature.
 
+- Ability to build as a static library - must define WIIUSE_STATIC in
+	client app as well as choosing the appropriate option when building
+	WiiUse. The default is still a shared library (dll/so). Merged from
+	paulburton and added to build system.
+
+- Initial MotionPlus support. Thanks to admiral0 for the initial pull
+	request merging from fwiine, and to Jan Ciger Reviatech SAS for building
+	on it with fwiine and WiiC code as well as additional code. Try it out
+	in the example by pressing 1 to start and 2 to stop.
+
 Fixed:
 
+- Properly disable rumbling when told to. Thanks to Jeff Baker from
+	(Inv3rsion, LLC.)(http://www.inv3rsion.com/)
+
+- Builds properly now on mingw (both cross-compile and native).
+
+- Improved reliability on Windows when running an app twice without dis-connecting
+	the Wiimote (came as a part of the MotionPlus support.)
+
 Changed:
+
+- Improved header includes using feedback from (include-what-you-use)[iwyu]
+
+- Additional internal function `wiiuse_millisleep()` to reduce the number
+	of `ifdef`s scattered through the code.
+
+- Provide endianness-conversion and buffer/unbuffer functions, rather than
+	a jumble of function-style macros and raw type punning. This should
+	fix all aliasing warnings.
+
+[iwyu]:http://code.google.com/p/include-what-you-use/
 
 v0.14 -- 2 May 2011
 -------------------
@@ -31,11 +60,11 @@ Added:
 	`wiiuse_set_output` in `wiiuse.h`. The preprocessor symbol
 	`WIIUSE_HAS_OUTPUT_REDIRECTION` indicates the presence of this feature.
 	Thanks to Johannes Zarl for this handy feature!
-	
+
 - Doxyfile and "doc" target to the build system, to easily make use of
 	the documentation already in the code, along with doc cleanups and
 	improvements. (rp)
-	
+
 - Added balance board code to example (Paul Burton, rp)
 
 Fixed:
@@ -73,7 +102,7 @@ Fixed:
 v0.13 -- 11 November 2010
 -------------------------
 Added:
-- Support for Wii Balance Board ("wiiboard"): your code can 
+- Support for Wii Balance Board ("wiiboard"): your code can
 	`#ifdef EXP_WII_BOARD` (support based in part on code from TU-Delft)
 
 - CMake-based cross-platform build system
