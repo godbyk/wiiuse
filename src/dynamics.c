@@ -145,9 +145,9 @@ static float applyCalibration(float inval, float minval, float maxval, float cen
 	if (inval == centerval) {
 		ret = 0;
 	} else if (inval < centerval) {
-		ret = (inval - centerval) / (centerval - minval + 1);
+		ret = (inval - minval) / (centerval - minval + 1.0f) - 1.0f;
 	} else {
-		ret = (inval - centerval) / (maxval - centerval + 1);
+		ret = (inval - centerval) / (maxval - centerval + 1.0f);
 	}
 	return ret;
 }
@@ -180,6 +180,8 @@ void calc_joystick_state(struct joystick_t* js, float x, float y) {
 	 */
 	rx = applyCalibration(x, js->min.x, js->max.x, js->center.x);
 	ry = applyCalibration(y, js->min.y, js->max.y, js->center.y);
+	js->x = rx;
+	js->y = ry;
 	/* calculate the joystick angle and magnitude */
 	ang = RAD_TO_DEGREE(atan2f(ry, rx));
 	js->ang = ang + 180.0f;
